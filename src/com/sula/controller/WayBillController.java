@@ -125,4 +125,5 @@ public class WayBillController extends Controller {
 
 		renderJson(json);
 	}
+
 }

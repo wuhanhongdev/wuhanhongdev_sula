@@ -418,7 +418,6 @@ public class DriverController extends Controller {
 
         String truckInfo = getPara("truckInfo");
         String sign = getPara("sign");
-
         ResultJson json = new ResultJson();
         if (StringUtils.isEmpty(sign)){
             json.setCode(Status.fail);
@@ -453,6 +452,33 @@ public class DriverController extends Controller {
         renderJson(json);
     }
 
+    /**
+     * 加载货主评价
+     */
+    public void loadRepay(){
+        Integer trucksId = getParaToInt("trucksId");
+        Integer page = getParaToInt("trucksId") == null ? 1 : getParaToInt("trucksId");
+        String sign = getPara("sign");
+        ResultJson json = new ResultJson();
+        if (StringUtils.isEmpty(sign)){
+            json.setCode(Status.fail);
+            json.setMessage("手机MAC地址为空");
+        }else if(trucksId == null){
+            json.setCode(Status.fail);
+            json.setMessage("车源ID为空");
+        }else{
+            if(Verify.isMac(sign)){
+                Page<Record> records = driverService.loadRepay(trucksId,page);
+                json.setCode(Status.success);
+                json.setMessage("货主评价加载成功");
+                json.setResult(records);
+            }else{
+                json.setCode(Status.fail);
+                json.setMessage("校验码错误");
+            }
+        }
+        renderJson(json);
+    }
     private Map<String,Object> canAddTruck(TruckInfo info) {
         Map<String,Object> map = new HashMap<String,Object>();
         StringBuffer buffer = new StringBuffer();

@@ -3,14 +3,20 @@ package com.sula.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fengpei.ioc.Controller;
+import com.jfinal.plugin.activerecord.Page;
+import com.jfinal.plugin.activerecord.Record;
+import com.spatial4j.core.io.GeohashUtils;
 import com.sula.model.Goods;
+import com.sula.omparator.DistanceComparator;
 import com.sula.service.GoodsService;
 import com.sula.util.ResultJson;
 import com.sula.util.Status;
 import com.sula.util.Verify;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GoodsController extends Controller {
@@ -103,8 +109,59 @@ public class GoodsController extends Controller {
     /**
      * 查找货源
      */
-    public void searchGoos(){
+    public void searchGoods(){
+        ResultJson json = new ResultJson();
+        Double startLon = StringUtils.isEmpty(getPara("startLon")) ? null : Double.valueOf(getPara("startLon"));
+        Double startLat = StringUtils.isEmpty(getPara("startLat")) ? null : Double.valueOf(getPara("startLat"));
 
+        Double endLon = StringUtils.isEmpty(getPara("endLon")) ? null : Double.valueOf(getPara("endLon"));
+        Double endLat = StringUtils.isEmpty(getPara("endLat")) ? null : Double.valueOf(getPara("endLat"));
+
+        Integer carLength = StringUtils.isEmpty(getPara("carLength")) ? null : Integer.valueOf(getPara("carLength"));
+
+        String loadTime = getPara("loadTime");
+
+        int page = getParaToInt("page") == null ? 1 : getParaToInt("page");
+        String sign = getPara("sign");
+        if (StringUtils.isEmpty(sign)){
+            json.setCode(Status.fail);
+            json.setMessage("手机MAC地址为空");
+        }else{
+            if(Verify.isMac(sign)){
+                String startPatten = "",endPatten = "";
+                if(startLon != null && startLat != null){//计算触发第匹配值
+
+                    startPatten = GeohashUtils.encodeLatLon(startLon, startLat, 3);
+                }
+
+                if(endLon != null && endLat != null){//计算目的地匹配值
+                    endPatten = GeohashUtils.encodeLatLon(endLon, endLat, 3);
+                }
+                try{
+                    Page<Record> driverInfos = driverService.searchDrivers(startPatten,endPatten,carLength,loadTime,page);
+                    List<Record> resultList = convertRecords(startLon, startLat, driverInfos.getList());
+                    Collections.sort(resultList, new DistanceComparator());
+                    Page<Record> resultPage = new Page<Record>(
+                            resultList,
+                            driverInfos.getPageNumber(),
+                            driverInfos.getPageSize(),
+                            driverInfos.getTotalPage(),
+                            driverInfos.getTotalRow()
+                    );
+                    json.setCode(Status.success);
+                    json.setMessage("货源信息查询成功");
+                    json.setResult(resultPage);
+                }catch (Exception e){
+                    e.printStackTrace();
+                    json.setCode(Status.fail);
+                    json.setMessage("货源信息查询出错,请重试");
+                }
+            }else{
+                json.setCode(Status.fail);
+                json.setMessage("校验码错误");
+            }
+        }
+        renderJson(json);
     }
 
     private Map<String,Object> canAdd(Goods goods){
