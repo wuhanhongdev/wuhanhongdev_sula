@@ -2,14 +2,17 @@ package com.sula.service.impl;
 
 import ch.hsr.geohash.GeoHash;
 import com.jfinal.plugin.activerecord.Db;
+import com.jfinal.plugin.activerecord.Page;
 import com.jfinal.plugin.activerecord.Record;
 import com.spatial4j.core.io.GeohashUtils;
 import com.sula.model.Goods;
 import com.sula.service.GoodsService;
 import com.sula.util.Status;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GoodsServiceImpl implements GoodsService {
@@ -74,6 +77,66 @@ public class GoodsServiceImpl implements GoodsService {
         record.set("freight",increasePrice);
         boolean flag = Db.update("sl_goods_info",record);
         return flag ? Status.success : Status.fail;
+    }
+
+    @Override
+    public Page<Record> searchGoods(String startPatten, String endPatten, Integer carLength, String loadTime, int page) {
+        String selectSQL = "SELECT goods.id,goods.startplace,goods.endplace,goods.loadtime,goods.start_lon as startLon,goods.start_lat as startLat,goods.goods,goods.freight,goods.create_time,userinfo.img," +
+                " (SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-length' and dict.key = goods.carlength) as  carLength," +
+                " (SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-model' and dict.key = goods.carmodels) as  carModel";
+        String querySQL = " FROM sl_goods_info goods" +
+                " LEFT JOIN sl_user_info userinfo ON userinfo.id = goods.user_id where 1=1 ";
+        if(StringUtils.isNotEmpty(startPatten)){
+            querySQL += " AND goods.start_geo_code like '"+startPatten+"%'";
+        }
+        if(StringUtils.isNotEmpty(endPatten)){
+            querySQL += " AND goods.end_geo_code like '"+endPatten+"%'";
+        }
+        if(carLength != null){
+            querySQL += " and goods.carlength='"+carLength+"%'";
+        }
+        if(loadTime != null){
+            querySQL += " goods.loadtime='"+loadTime+"%'";
+        }
+
+        return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
+    }
+
+    @Override
+    public Page<Record> loadMineGoods(Integer userId, Integer page) {
+        String selectSQL = "SELECT * ";
+        String querySQL = "FROM sl_goods_info WHERE type=1 and user_id="+userId;
+        return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
+    }
+
+    @Override
+    public Record selectRateInfo(Integer userId) {
+        String selectSQL = "SELECT count(*) as waybillTimes, " +
+                "(SELECT avg(score) FROM sl_waybill_replay WHERE waybillid = waybill.id) as rate " +
+                "FROM sl_waybill waybill WHERE waybill.goods_id in(SELECT id FROM sl_goods_info WHERE user_id="+userId+")";
+        return Db.findFirst(selectSQL);
+    }
+
+    @Override
+    public Record selectGoodsById(Integer goodsId) {
+        String selectSQL = "SELECT goods.*,userinfo.img," +
+                "(SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-length' and dict.key = goods.carlength) as  carLength," +
+                "(SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-model' and dict.key = goods.carmodels) as  carModel" +
+                " FROM sl_goods_info goods "+
+                " LEFT JOIN sl_user_info userinfo ON userinfo.id = goods.user_id" +
+                " where goods.id="+goodsId;
+        List<Record> records = Db.find(selectSQL);
+        return records.size() > 0 ? records.get(0) : null;
+    }
+
+    @Override
+    public Page<Record> loadReplay(Integer userId, Integer page) {
+        String selectSQL = "SELECT replay.contents,replay.createtime,userinfo.nick,userinfo.img ";
+        String querySQL = " FROM sl_waybill waybill" +
+                " LEFT JOIN sl_waybill_replay replay ON replay.waybillid = waybill.id" +
+                " LEFT JOIN sl_user_info userinfo on userinfo.id = replay.userid" +
+                " WHERE waybill.goods_id in(SELECT id FROM sl_goods_info WHERE user_id="+userId+") and replay.contents is not null";
+        return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
     }
 
     public static void main(String[] args){

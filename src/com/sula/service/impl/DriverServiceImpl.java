@@ -203,4 +203,13 @@ public class DriverServiceImpl implements DriverService {
                 "FROM sl_waybill waybill WHERE waybill.trucks_id="+trucksId;
         return Db.findFirst(selectSQL);
     }
+
+    @Override
+    public Page<Record> loadRepay(Integer trucksId, Integer page) {
+        String selectSQL = "SELECT replay.contents,replay.createtime,userinfo.nick,userinfo.img ";
+        String querySQL = "FROM (SELECT * from sl_waybill WHERE trucks_id="+trucksId+") waybill " +
+                "LEFT JOIN sl_waybill_replay replay ON replay.waybillid = waybill.id " +
+                "LEFT JOIN sl_user_info userinfo on userinfo.id = replay.userid";
+        return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
+    }
 }

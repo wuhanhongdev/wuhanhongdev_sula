@@ -91,4 +91,11 @@ public interface DriverService {
      * @return
      */
     Record selectRateInfo(Integer trucksId);
+
+    /**
+     * 加载货主评价
+     * @param trucksId
+     * @return
+     */
+    Page<Record> loadRepay(Integer trucksId, Integer page);
 }

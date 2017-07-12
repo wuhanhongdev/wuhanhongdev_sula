@@ -9,15 +9,13 @@ import com.spatial4j.core.io.GeohashUtils;
 import com.sula.model.Goods;
 import com.sula.omparator.DistanceComparator;
 import com.sula.service.GoodsService;
+import com.sula.util.DistUtils;
 import com.sula.util.ResultJson;
 import com.sula.util.Status;
 import com.sula.util.Verify;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class GoodsController extends Controller {
 
@@ -106,9 +104,31 @@ public class GoodsController extends Controller {
         renderJson(json);
     }
 
-    /**
-     * 查找货源
-     */
+    public void loadMimeGoods(){
+        ResultJson json = new ResultJson();
+        Integer userId = getParaToInt("userId");
+        Integer page = getParaToInt("page") == null ? 1 : getParaToInt("page");
+        String sign = getPara("sign");
+        if (StringUtils.isEmpty(sign)){
+            json.setCode(Status.fail);
+            json.setMessage("手机MAC地址为空");
+        }else if(userId == null){
+            json.setCode(Status.fail);
+            json.setMessage("用户ID为空");
+        }else{
+            if(Verify.isMac(sign)){
+                Page<Record> records = goodsService.loadMineGoods(userId,page);
+                json.setCode(Status.success);
+                json.setMessage("查询成功");
+                json.setResult(records);
+            }else{
+                json.setCode(Status.fail);
+                json.setMessage("校验码错误");
+            }
+        }
+        renderJson(json);
+    }
+
     public void searchGoods(){
         ResultJson json = new ResultJson();
         Double startLon = StringUtils.isEmpty(getPara("startLon")) ? null : Double.valueOf(getPara("startLon"));
@@ -126,19 +146,20 @@ public class GoodsController extends Controller {
         if (StringUtils.isEmpty(sign)){
             json.setCode(Status.fail);
             json.setMessage("手机MAC地址为空");
+        }else if(startLon == null || startLat == null){
+            json.setCode(Status.fail);
+            json.setMessage("起始位置为空");
         }else{
             if(Verify.isMac(sign)){
                 String startPatten = "",endPatten = "";
                 if(startLon != null && startLat != null){//计算触发第匹配值
-
                     startPatten = GeohashUtils.encodeLatLon(startLon, startLat, 3);
                 }
-
                 if(endLon != null && endLat != null){//计算目的地匹配值
                     endPatten = GeohashUtils.encodeLatLon(endLon, endLat, 3);
                 }
                 try{
-                    Page<Record> driverInfos = driverService.searchDrivers(startPatten,endPatten,carLength,loadTime,page);
+                    Page<Record> driverInfos = goodsService.searchGoods(startPatten,endPatten,carLength,loadTime,page);
                     List<Record> resultList = convertRecords(startLon, startLat, driverInfos.getList());
                     Collections.sort(resultList, new DistanceComparator());
                     Page<Record> resultPage = new Page<Record>(
@@ -162,6 +183,92 @@ public class GoodsController extends Controller {
             }
         }
         renderJson(json);
+    }
+
+    public void loadGoodsDetail(){
+        ResultJson json = new ResultJson();
+        Integer goodsId = getParaToInt("goodsId");
+        String sign = getPara("sign");
+        if (StringUtils.isEmpty(sign)){
+            json.setCode(Status.fail);
+            json.setMessage("手机MAC地址为空");
+        }else if(goodsId == null){
+            json.setCode(Status.fail);
+            json.setMessage("货源ID为空");
+        }else{
+            if(Verify.isMac(sign)){
+                JSONObject object = new JSONObject();
+                try{
+                    Record goodsInfo = goodsService.selectGoodsById(goodsId);
+                    if(goodsInfo != null){
+                        Integer userId = goodsInfo.get("user_id");
+                        Record rateInfo = goodsService.selectRateInfo(userId);
+                        object.put("goodsInfo",goodsInfo);
+                        object.put("rateInfo",rateInfo);
+
+                        json.setCode(Status.success);
+                        json.setMessage("货源信息查询失成功");
+                        json.setResult(object);
+                    }else{
+                        json.setCode(Status.fail);
+                        json.setMessage("无改ID对应的货源");
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                    json.setCode(Status.fail);
+                    json.setMessage("货源信息查询失败");
+                }
+            }else{
+                json.setCode(Status.fail);
+                json.setMessage("校验码错误");
+            }
+        }
+        renderJson(json);
+    }
+
+    public void loadReplay(){
+        ResultJson json = new ResultJson();
+        Integer userId = getParaToInt("userId");
+        String sign = getPara("sign");
+        int page = getParaToInt("page") == null ? 1 : getParaToInt("page");
+        if (StringUtils.isEmpty(sign)){
+            json.setCode(Status.fail);
+            json.setMessage("手机MAC地址为空");
+        }else if(userId == null){
+            json.setCode(Status.fail);
+            json.setMessage("用户ID为空");
+        }else{
+            if(Verify.isMac(sign)){
+                Page<Record> replays = goodsService.loadReplay(userId, page);
+                if (replays != null) {
+                    json.setCode(Status.success);
+                    json.setMessage(Status.message_success);
+                    json.setResult(replays);
+                } else {
+                    json.setCode(Status.fail);
+                    json.setMessage(Status.message_null);
+                }
+            }else{
+                json.setCode(Status.fail);
+                json.setMessage("校验码错误");
+            }
+        }
+        renderJson(json);
+    }
+
+    private List<Record> convertRecords(double lonValue, double latValue, List<Record> recordList) {
+        List<Record> resultList = new ArrayList<Record>();
+        for(Record record : recordList){//计算距离
+            double longitude = record.get("startLon");
+            double dimension = record.get("startLat");
+
+            double distance = DistUtils.countDistance(lonValue,latValue,longitude,dimension);
+
+            record.set("distance",distance);
+
+            resultList.add(record);
+        }
+        return resultList;
     }
 
     private Map<String,Object> canAdd(Goods goods){

@@ -1,6 +1,7 @@
 package com.sula.service;
 
 import com.fengpei.ioc.AutoInstance;
+import com.jfinal.plugin.activerecord.Page;
 import com.jfinal.plugin.activerecord.Record;
 import com.sula.model.Goods;
 
@@ -40,4 +41,45 @@ public interface GoodsService {
      * @return
      */
     int increasePrice(Integer goodId, String price);
+
+    /**
+     * 主动找货
+     * @param startPatten 起点匹配
+     * @param endPatten 目的地匹配
+     * @param carLength 车长
+     * @param loadTime 装货时间
+     * @param page 页码
+     * @return
+     */
+    Page<Record> searchGoods(String startPatten, String endPatten, Integer carLength, String loadTime, int page);
+
+    /**
+     * 后去我的货源/type=1
+     * @param userId
+     * @param page
+     * @return
+     */
+    Page<Record> loadMineGoods(Integer userId, Integer page);
+
+    /**
+     * 获取货主评星
+     * @param userId 货主
+     * @return
+     */
+    Record selectRateInfo(Integer userId);
+
+    /**
+     * 根据ID查询货源
+     * @param goodsId
+     * @return
+     */
+    Record selectGoodsById(Integer goodsId);
+
+    /**
+     * 查询货主评价
+     * @param userId
+     * @param page
+     * @return
+     */
+    Page<Record> loadReplay(Integer userId, Integer page);
 }
