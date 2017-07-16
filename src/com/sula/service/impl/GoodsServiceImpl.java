@@ -139,6 +139,11 @@ public class GoodsServiceImpl implements GoodsService {
         return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
     }
 
+    @Override
+    public Record selectMimeWaybill(Integer userId, String type) {
+        return null;
+    }
+
     public static void main(String[] args){
         //中国上海市上海市奉贤区
         double lon = 121.485796;

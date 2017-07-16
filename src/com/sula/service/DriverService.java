@@ -98,4 +98,12 @@ public interface DriverService {
      * @return
      */
     Page<Record> loadRepay(Integer trucksId, Integer page);
+
+    /**
+     * 查询司机运单
+     * @param userId 司机ID
+     * @param type 查询类型
+     * @return
+     */
+    Record selectMimeWaybill(Integer userId, String type);
 }

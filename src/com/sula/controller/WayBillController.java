@@ -35,7 +35,7 @@ public class WayBillController extends Controller {
 	}
 
 	/**
-	 * 生成运单
+	 * 生成运单,货主将某个货源指派给司机或者司机主动找货并得到货主认可将货源指派后,生成运单,初始状态为0即待支付状态
 	 */
 	public void initWaybill(){
 		ResultJson json = new ResultJson();
@@ -116,6 +116,109 @@ public class WayBillController extends Controller {
 				}else{
 					json.setCode(Status.fail);
 					json.setMessage("运单信息查询失败");
+				}
+			}else{
+				json.setCode(Status.fail);
+				json.setMessage("校验码错误");
+			}
+		}
+
+		renderJson(json);
+	}
+
+	/**
+	 * 支付成功后,上传支付状态,将运单状态变为待装货
+	 */
+	public void uploadPayState(){
+		modifyWaybillState(1);
+	}
+
+	/**
+	 * 司机上传装货结果
+	 * 货主支付完成后,由司机前去装货,装货完成后,由司机触发运单状态为运输中
+	 */
+	public void uploadDriverLoad(){
+		modifyWaybillState(2);
+	}
+
+	/**
+	 * 司机上传已到达结果
+	 * 运输到达目的地后,司机将运单状态触发为待收货状态
+	 */
+	public void uploadArrivals(){
+		modifyWaybillState(3);
+	}
+
+	/**
+	 * 由货主将运单确认收货，并将运单状态触发为4即待评价状态,随后app应跳转到对运单的评价页面，使货主对运单做评价
+	 */
+	public void uploadReceiveState(){
+		modifyWaybillState(5);
+	}
+
+	/**
+	 * 由货主对司机作评价，评价完成后将运单状态变为完成即5
+	 */
+	public void uploadEvaluation(){
+		ResultJson json = new ResultJson();
+		Integer waybillId = getParaToInt("waybillId");//运单ID
+		String evaluationContent = getPara("evaluationContent");
+		Integer userId = getParaToInt("userId");//评价人ID
+		Integer score = getParaToInt("score");//评价人ID
+		String sign = getPara("sign");
+		if (StringUtils.isEmpty(sign)){
+			json.setCode(Status.fail);
+			json.setMessage("手机MAC地址为空");
+		}else if(waybillId == null){
+			json.setCode(Status.fail);
+			json.setMessage("运单ID为空");
+		}else if(userId == null){
+			json.setCode(Status.fail);
+			json.setMessage("评价人ID为空");
+		}else if(StringUtils.isEmpty(evaluationContent)){
+			json.setCode(Status.fail);
+			json.setMessage("评价内容为空");
+		}else if(score == null){
+			json.setCode(Status.fail);
+			json.setMessage("评价分数为空");
+		}else{
+			if(Verify.isMac(sign)){
+				int state = wbs.addWaybillEvaluation(waybillId,userId,evaluationContent,score);
+				if(state == Status.fail){
+					json.setCode(Status.fail);
+					json.setMessage("运单评价失败,请重试!");
+				}else{
+					json.setCode(Status.success);
+					json.setMessage("运单评价成功!");
+				}
+			}else{
+				json.setCode(Status.fail);
+				json.setMessage("校验码错误");
+			}
+		}
+		renderJson(json);
+	}
+
+	private void modifyWaybillState(int s){
+		ResultJson json = new ResultJson();
+		Integer waybillId = getParaToInt("waybillId");//运单ID
+
+		String sign = getPara("sign");
+		if (StringUtils.isEmpty(sign)){
+			json.setCode(Status.fail);
+			json.setMessage("手机MAC地址为空");
+		}else if(waybillId == null){
+			json.setCode(Status.fail);
+			json.setMessage("运单ID为空");
+		}else{
+			if(Verify.isMac(sign)){
+				int state = wbs.modifyWaybillState(waybillId,s);
+				if(state == Status.fail){
+					json.setCode(Status.fail);
+					json.setMessage("支付结果上传失败,请重试!");
+				}else{
+					json.setCode(Status.success);
+					json.setMessage("支付结果上传成功");
 				}
 			}else{
 				json.setCode(Status.fail);

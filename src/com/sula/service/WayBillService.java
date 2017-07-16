@@ -20,8 +20,25 @@ public interface WayBillService {
 
     /**
      * 根据运单ID查询运单
-     * @param waybillId
+     * @param waybillId 运单ID
      * @return
      */
     Record selectWaybill(Integer waybillId);
+
+    /**
+     * 变更运单状态
+     * @param waybillId 运单ID
+     * @param i 状态
+     * @return
+     */
+    int modifyWaybillState(Integer waybillId, int i);
+
+    /**
+     * 添加运单评价
+     * @param waybillId 运单ID
+     * @param userId 评价人ID
+     * @param evaluationContent 评价内容
+     * @return
+     */
+    int addWaybillEvaluation(Integer waybillId, Integer userId, String evaluationContent,Integer score);
 }

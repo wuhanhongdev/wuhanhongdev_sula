@@ -212,4 +212,9 @@ public class DriverServiceImpl implements DriverService {
                 "LEFT JOIN sl_user_info userinfo on userinfo.id = replay.userid";
         return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
     }
+
+    @Override
+    public Record selectMimeWaybill(Integer userId, String type) {
+        return null;
+    }
 }

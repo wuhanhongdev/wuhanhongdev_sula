@@ -82,4 +82,12 @@ public interface GoodsService {
      * @return
      */
     Page<Record> loadReplay(Integer userId, Integer page);
+
+    /**
+     * 查询货主运单
+     * @param userId 货主ID
+     * @param type 查询类型
+     * @return
+     */
+    Record selectMimeWaybill(Integer userId, String type);
 }

@@ -71,6 +71,50 @@ public class AppIndexController extends Controller {
      */
 
     /**
+     * 查询我的运单
+     * 运单状态：0-待支付  1-待装货 2-运单中  3-待收货 4-待评价 5-完成  10-取消
+     * 对于货主：我的运单包含了我发布的货源：发布时状态为派单中  若有司机接单  则以运单表为准
+     * 对于司机：我的运单仅包含了运单表中有的内容
+     */
+    public void loadMimeWaybill(){
+        ResultJson json = new ResultJson();
+
+        String userRole = getPara("userRole");
+        Integer userId = getParaToInt("userId");
+        String type = getPara("type");
+        String sign = getPara("sign");
+        if (StringUtils.isEmpty(sign)){
+            json.setCode(Status.fail);
+            json.setMessage("手机MAC地址为空");
+        }else if(StringUtils.isEmpty(userRole)){
+            json.setCode(Status.fail);
+            json.setMessage("用户类型为空");
+        }else if(userId == null){
+            json.setCode(Status.fail);
+            json.setMessage("用户ID为空");
+        }else if(StringUtils.isEmpty(type)){
+            json.setCode(Status.fail);
+            json.setMessage("查询类型为空");
+        }else{
+            if(Verify.isMac(sign)){
+                Record record = null;
+                if("2".equals(userRole)){//查询货主运单
+                    record = goodsService.selectMimeWaybill(userId,type);
+                }else if("1".equals(userRole)){//查询司机运单
+                    record = driverService.selectMimeWaybill(userId,type);
+                }
+                json.setCode(Status.success);
+                json.setMessage("查询成功");
+                json.setResult(record);
+            }else{
+                json.setCode(Status.fail);
+                json.setMessage("校验码错误");
+            }
+        }
+        renderJson(json);
+    }
+
+    /**
      * 投诉
      * 添加投诉时状态默认为未处理
      * 默认在APP显示处理结果
