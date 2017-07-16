@@ -140,8 +140,23 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
-    public Record selectMimeWaybill(Integer userId, String type) {
-        return null;
+    public Page<Record> selectMimeWaybill(Integer userId, String type,Integer page) {
+        String selectSQL = "SELECT goods.startplace as startPlace, goods.endplace as endPlace," +
+                "(SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-length' and dict.key=goods.carlength) as carLength," +
+                "(SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-model' and dict.key=goods.carmodels) as carModel," +
+                "CASE WHEN waybill.trucks_id is null THEN 0 ELSE  (SELECT truck.carload FROM sl_user_truck truck WHERE truck.id" +
+                "=(SELECT trucks.trucks_id FROM sl_trucks_info trucks WHERE trucks.id=waybill.trucks_id ))  END as carLoad," +
+                "goods.loadtime as loadTime,goods.id as goodId,goods.create_time as createTime,waybill.trucks_id as trucksId,waybill.id as waybillId," +
+                "CASE  waybill.waystate WHEN 0 THEN '待支付' WHEN 1 THEN '待装货' WHEN 2 THEN '运送中' WHEN 3 THEN '待收货' " +
+                "WHEN 4 THEN '待评价' WHEN 5 THEN '完成' WHEN 10 THEN '取消' ELSE '派单中'  END AS state,waybill.waystate as waystate";
+        String querySQL = " FROM (SELECT * FROM sl_goods_info WHERE user_id ="+userId;
+        if(Status.TYPE_IN_TRANSIT.equals(type)){
+            querySQL += " and type in (1,2) ";
+        }
+        querySQL += ") goods ";
+        querySQL += " LEFT JOIN sl_waybill waybill ON waybill.goods_id = goods.id ORDER BY goods.create_time DESC";
+
+        return Db.paginate(page,Status.pageSize,selectSQL,querySQL);
     }
 
     public static void main(String[] args){

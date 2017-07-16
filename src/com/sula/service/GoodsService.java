@@ -89,5 +89,5 @@ public interface GoodsService {
      * @param type 查询类型
      * @return
      */
-    Record selectMimeWaybill(Integer userId, String type);
+    Page<Record> selectMimeWaybill(Integer userId, String type,Integer page);
 }

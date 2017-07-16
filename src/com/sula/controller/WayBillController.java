@@ -35,6 +35,48 @@ public class WayBillController extends Controller {
 	}
 
 	/**
+	 * 加载我的运单
+	 */
+	public void loadMimeWaybill(){
+		ResultJson json = new ResultJson();
+
+		String userRole = getPara("userRole");
+		Integer userId = getParaToInt("userId");
+		String type = getPara("type");
+		int page = getParaToInt("page") == null ? 1 : getParaToInt("page");
+		String sign = getPara("sign");
+		if (StringUtils.isEmpty(sign)){
+			json.setCode(Status.fail);
+			json.setMessage("手机MAC地址为空");
+		}else if(StringUtils.isEmpty(userRole)){
+			json.setCode(Status.fail);
+			json.setMessage("用户类型为空");
+		}else if(userId == null){
+			json.setCode(Status.fail);
+			json.setMessage("用户ID为空");
+		}else if(StringUtils.isEmpty(type)){
+			json.setCode(Status.fail);
+			json.setMessage("查询类型为空");
+		}else{
+			if(Verify.isMac(sign)){
+				Page<Record> record = null;
+				if("2".equals(userRole)){//查询货主运单
+					record = goodsService.selectMimeWaybill(userId,type,page);
+				}else if("1".equals(userRole)){//查询司机运单
+					record = driverService.selectMimeWaybill(userId,type,page);
+				}
+				json.setCode(Status.success);
+				json.setMessage("查询成功");
+				json.setResult(record);
+			}else{
+				json.setCode(Status.fail);
+				json.setMessage("校验码错误");
+			}
+		}
+		renderJson(json);
+	}
+
+	/**
 	 * 生成运单,货主将某个货源指派给司机或者司机主动找货并得到货主认可将货源指派后,生成运单,初始状态为0即待支付状态
 	 */
 	public void initWaybill(){
@@ -130,7 +172,7 @@ public class WayBillController extends Controller {
 	 * 支付成功后,上传支付状态,将运单状态变为待装货
 	 */
 	public void uploadPayState(){
-		modifyWaybillState(1);
+		modifyWaybillState(Status.WAIT_LOAD);
 	}
 
 	/**
@@ -138,7 +180,7 @@ public class WayBillController extends Controller {
 	 * 货主支付完成后,由司机前去装货,装货完成后,由司机触发运单状态为运输中
 	 */
 	public void uploadDriverLoad(){
-		modifyWaybillState(2);
+		modifyWaybillState(Status.IN_TRANSIT);
 	}
 
 	/**
@@ -146,14 +188,14 @@ public class WayBillController extends Controller {
 	 * 运输到达目的地后,司机将运单状态触发为待收货状态
 	 */
 	public void uploadArrivals(){
-		modifyWaybillState(3);
+		modifyWaybillState(Status.WAIT_ARRIVALS);
 	}
 
 	/**
 	 * 由货主将运单确认收货，并将运单状态触发为4即待评价状态,随后app应跳转到对运单的评价页面，使货主对运单做评价
 	 */
 	public void uploadReceiveState(){
-		modifyWaybillState(5);
+		modifyWaybillState(Status.DONE);
 	}
 
 	/**
@@ -215,10 +257,10 @@ public class WayBillController extends Controller {
 				int state = wbs.modifyWaybillState(waybillId,s);
 				if(state == Status.fail){
 					json.setCode(Status.fail);
-					json.setMessage("支付结果上传失败,请重试!");
+					json.setMessage("运单状态更新失败,请重试!");
 				}else{
 					json.setCode(Status.success);
-					json.setMessage("支付结果上传成功");
+					json.setMessage("运单状态更新成功");
 				}
 			}else{
 				json.setCode(Status.fail);

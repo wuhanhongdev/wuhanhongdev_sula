@@ -62,16 +62,16 @@ public class WayBillServiceImpl implements WayBillService{
 		record.set("waystate",i);
 		Date opDate = new Date();
 		switch (i){
-			case 1 :
+			case Status.WAIT_LOAD :
 				record.set("paytime",opDate);
 				break;
-			case 2:
+			case Status.IN_TRANSIT:
 				record.set("loadingtime",opDate);
 				break;
-			case 3:
+			case Status.WAIT_ARRIVALS:
 				record.set("deliverytime",opDate);
 				break;
-			case 5:
+			case Status.DONE:
 				record.set("receipttime",opDate);
 				//将其货源置为完成
 				Integer goodsId = record.get("goods_id");

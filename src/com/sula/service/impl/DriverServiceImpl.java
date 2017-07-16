@@ -214,7 +214,23 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    public Record selectMimeWaybill(Integer userId, String type) {
-        return null;
+    public Page<Record> selectMimeWaybill(Integer userId, String type,Integer page) {
+        String selectSQL = "SELECT goods.startplace as startPlace, goods.endplace as endPlace," +
+                "(SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-length' and dict.key=goods.carlength) as carLength," +
+                "(SELECT dict.value FROM sl_app_dict dict WHERE dict.type='car-model' and dict.key=goods.carmodels) as carModel," +
+                "CASE WHEN waybill.trucks_id is null THEN 0 ELSE  (SELECT truck.carload FROM sl_user_truck truck WHERE truck.id" +
+                "=(SELECT trucks.trucks_id FROM sl_trucks_info trucks WHERE trucks.id=waybill.trucks_id ))  END as carLoad," +
+                "goods.loadtime as loadTime,goods.id as goodId,goods.create_time as createTime,waybill.trucks_id as trucksId,waybill.id as waybillId," +
+                "CASE  waybill.waystate WHEN 0 THEN '接单中' WHEN 1 THEN '装货中' WHEN 2 THEN '运送中' WHEN 3 THEN '已送达' WHEN 4 THEN '待评价' " +
+                "WHEN 5 THEN '完成' WHEN 10 THEN '取消' END AS state,waybill.waystate as waystate";
+        String querySQL = "FROM (SELECT * FROM sl_waybill WHERE trucks_id IN (" +
+                "SELECT id FROM sl_trucks_info WHERE trucks_id IN " +
+                "(SELECT truck.id FROM sl_user_truck truck WHERE truck.user_id = 2)";
+        if(Status.TYPE_IN_TRANSIT.equals(type)){
+            querySQL += " AND waystate not IN (5,10) ";
+        }
+        querySQL += ")) waybill" +
+                "LEFT JOIN sl_goods_info goods ON goods.id = waybill.goods_id";
+        return Db.paginate(page,Status.appPageSize,selectSQL,querySQL);
     }
 }

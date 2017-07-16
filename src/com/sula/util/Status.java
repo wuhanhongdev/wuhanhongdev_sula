@@ -13,6 +13,19 @@ public class Status {
 	public static int pageSize = 10;
 	//ApppageSize
 	public static int appPageSize = 20;
+
+	//waybill states
+	public final static int WAIT_PAY = 0;//待支付
+	public final static int WAIT_LOAD = 1;//待装货
+	public final static int IN_TRANSIT = 2;//运输中
+	public final static int WAIT_ARRIVALS = 3;//待收货
+	public final static int DONE = 5;//完成
+	public final static int WAIT_EVAL = 4;//待评价
+
+	//我的运单查询购率
+	public final static String TYPE_ALL = "ALL";
+	public final static String TYPE_IN_TRANSIT = "IN";
+
 	
 	//短信URL
 	public static String smsUrl = "http://114.215.196.145/sendSmsApi";
